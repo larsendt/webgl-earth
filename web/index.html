@@ -1,0 +1,60 @@
+<!doctype HTML>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>larsendt.com</title>
+        <link rel="stylesheet" href="larsendt.css">
+    </head>
+    <body>
+        <div id="wrapper">
+            <canvas id="bg-canvas"></canvas>
+            <div id="header" class="content-block">
+                <div id="page-title" class="title-text">larsendt.com</div>
+                <div id="nav-wrapper">
+                    <a href="/" class="header-item">Main</a>
+                    <a href="/projects.html" class="header-item">Projects</a>
+                    <a href="/resume.html" class="header-item">Resume</a>
+                </div>
+                <div style="clear: both;"></div>
+            </div>
+            <div class="content-block">
+                <p>
+                    Hi, my name is Dane Larsen. I'm a first year Master's student studying Computer Science at the
+                    <a href="http://colorado.edu">University of Colorado (at) Boulder</a>.
+                    I've been seriously programming for about six years now, with some brief experimentation before
+                    that with BASIC on a ZX81 that my <a href="http://www.casinc.com">Dad</a> helped me build from a kit.
+                </p>
+                <p>
+                    I'm good with C/C++, Python, Qt4, OpenGL/GLSL, OpenCL, Linux (Ubuntu primarily),
+                    Vim, Git, and lots of other odds and ends.
+                </p>
+
+                <p>
+                    I am currently employed at the
+                    <a href="http://lasp.colorado.edu">Laboratory for Atmospheric and Space Physics</a>
+                    as a student programmer. I'm currently working on something called the MOC Clock, situational awareness tool
+                    for LASP satellite operators that displays countdowns to contacts and other interesting spacecraft
+                    events.
+                </p>
+                <p>
+                    My proudest achievement so far has been contributing (in a very small way) to the Mars-bound satellite project,
+                    <a href="http://lasp.colorado.edu/home/maven/">MAVEN</a>.
+                </p>
+                <p>
+                    Feel free to poke around! I highly recommend the <a href="projects.html">projects page</a>.
+                </p>
+
+                <p>You can contact me at: <a href="mailto:dane@larsendt.com">dane@larsendt.com</a></p>
+            </div>
+        </div>
+        <script type="text/javascript" src="out/goog/base.js"></script>
+        <script type="text/javascript" src="background.js"></script>
+        <script>
+            background.draw("bg-canvas");
+            setInterval(function() {
+                background.draw("bg-canvas");
+            }, 500);
+        </script>
+    </body>
+</html>
+
