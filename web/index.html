@@ -49,10 +49,29 @@
         </div>
         <script type="text/javascript" src="background.js"></script>
         <script>
-            draw("bg-canvas");
+            var hmap = new Heightmap(50, 50);
+            draw("bg-canvas", hmap);
+            var h = 200;
             setInterval(function() {
-                draw("bg-canvas");
-            }, 16);
+                if(Math.random() < 0.05) {
+                    var v = Math.random();
+                    console.log(v);
+                    if(v > 0.75) {
+                        hmap.set_at(5, 5, h);
+                    }
+                    else if(v > 0.5) {
+                        hmap.set_at(45, 5, h);
+                    }
+                    else if(v > 0.25) {
+                        hmap.set_at(45, 45, h);
+                    }
+                    else {
+                        hmap.set_at(5, 45, h);
+                    }
+                }
+                hmap.next_state();
+                draw("bg-canvas", hmap);
+            }, 50);
         </script>
     </body>
 </html>
