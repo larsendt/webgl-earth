@@ -1,110 +1,52 @@
-function Heightmap(w, h) {
-    this.hmap = [];
-    for(var i = 0; i < w; i++) {
-        this.hmap.push([]);
-        for(var j = 0; j < h; j++) {
-            this.hmap[i].push(0.5);
-        }
-    }
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-    this.width = w;
-    this.height = h;
+var renderer = new THREE.WebGLRenderer({ antialiasing: true });
+renderer.setClearColor(0x000000);
+renderer.setSize(window.innerWidth, window.innerHeight - 5);
+var maxAnisotropy = renderer.getMaxAnisotropy();
 
-    this.avg_at = function(x, y) {
-        function get(x, y, heightmap) {
-            if(x < 0) {
-                x = 0;
-            }
-            else if(x >= heightmap.length) {
-                x = heightmap.length - 1;
-            }
+$("#bg-canvas").append(renderer.domElement);
 
-            if(y < 0) {
-                y = 0;
-            }
-            else if(y >= heightmap[0].length) {
-                y = heightmap[0].length - 1;
-            }
-            return heightmap[x][y];
-        }
+var texture = THREE.ImageUtils.loadTexture("blue_marble.png");
+texture.anisotropy = maxAnisotropy;
+var night_texture = THREE.ImageUtils.loadTexture("earth_night_lights.png");
+texture.anisotropy = maxAnisotropy;
+var spec_map = THREE.ImageUtils.loadTexture("earth-norm-spec.png");
+spec_map.anisotropy = maxAnisotropy;
 
-        var sum = 0;
-        for(var i = x-1; i < x+2; i++) {
-            for(var j = y-1; j < y+2; j++) {
-                if(i != x || j != y) {
-                    sum += get(i, j, this.hmap);
-                }
-            }
-        }
-        return sum / 8;
-    }
+var geometry = new THREE.SphereGeometry(3.5, 128, 128);
 
-    this.value_at = function(x, y) {
-        return this.hmap[x][y];
-    }
+var sun_pos = new THREE.Vector3(0, 0, -5);
 
-    this.sample_at = function(x, y, xmax, ymax) {
-        var thisx = Math.floor(this.width * (x / xmax));
-        var thisy = Math.floor(this.height * (y / ymax));
-        return this.hmap[thisx][thisy];
-    }
-
-    this.set_at = function(x, y, value) {
-        var v = Math.max(0.0, value);
-        this.hmap[x][y] = v;
-    }
-
-    this.next_state = function() {
-        var copy = [];
-        for(var i = 0; i < this.width; i++) {
-            copy.push([]);
-            for(var j = 0; j < this.height; j++) {
-                copy[i].push(this.avg_at(i, j));
-            }
-        }
-        this.hmap = copy;
-    }
+var uniforms =  {
+    texMapA: {type:"t", value:texture},
+    texMapSpecular: {type:"t", value:spec_map},
+    texMapNight: {type:"t", value:night_texture},
+    SunPosition: {type:"v3", value: sun_pos},
 }
 
+var material = new THREE.ShaderMaterial({
+    vertexShader: $("#earth-vertex").text(),
+    fragmentShader: $("#earth-fragment").text(),
+    uniforms: uniforms,
+});
 
-function fmt_color(r, g, b) {
-    r = Math.min(r, 255);
-    g = Math.min(g, 255);
-    b = Math.min(b, 255);
-    return "#" + r.toString(16) + g.toString(16) + b.toString(16);
+var earth = new THREE.Mesh(geometry, material);
+earth.position.z = -10.0;
+scene.add(earth);
+
+earth.rotation.y = 3.0;
+earth.rotation.x = 0.0;
+
+var sun_counter = 0.1;
+
+function render() {
+    requestAnimationFrame(render);
+    renderer.render(scene, camera);
+    sun_pos.x = Math.sin(sun_counter) * 500;
+    sun_pos.z = -Math.cos(sun_counter) * 500;
+    earth.rotation.y += 0.0002;
+    sun_counter += 0.001;
 }
-
-function draw_bg_square(ctx, xi, yi, sz, height) {
-    var color = 35;
-    if(xi % 2 == yi % 2) {
-        color = 50;
-    }
-
-    var hf = Math.round(75 * height);
-    var c = fmt_color(color + hf, color + hf, color + hf);
-    ctx.fillStyle = c;
-    ctx.fillRect(xi * sz, yi * sz, sz, sz);
-}
-
-function draw_bg(ctx, heightmap) {
-    var sz = 8;
-    var xn = Math.round(window.innerWidth / sz);
-    var yn = Math.round(window.innerHeight / sz);
-
-    var t = new Date().getTime() / 30.0;
-
-    for(var x = 0; x < xn; x++) {
-        for(var y = 0; y < yn; y++) {
-            var height = heightmap.sample_at(x, y, xn, yn);
-            draw_bg_square(ctx, x, y, sz, height);
-        }
-    }
-}
-
-function draw(elem, hmap) {
-    var canvas = document.getElementById(elem);
-    var ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    draw_bg(ctx, hmap);
-}
+render();
