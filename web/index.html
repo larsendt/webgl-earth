@@ -20,7 +20,9 @@
                 vec4 vert = modelViewMatrix * vec4(position, 1.0);
                 gl_Position = projectionMatrix * vert;
 
-                l = SunPosition - vec3(vert);
+                vec3 sun = vec3(viewMatrix * vec4(SunPosition, 0.0));
+
+                l = sun - vec3(vert);
                 n = normalMatrix * normal;
                 e = vec3(-vert);
             }
@@ -45,9 +47,6 @@
             vec4 lightContribution(vec3 L, vec3 N, vec3 E);
             void setRoughness(float rough);
 
-            vec3 N = normalize(n);
-            vec3 L = normalize(l);
-            vec3 E = normalize(e);
 
             // Physically Based lighting model
             // Uses Oren-Nayar reflectance model for diffuse properties
@@ -163,6 +162,10 @@
 
             void main()
             {
+                vec3 N = normalize(n);
+                vec3 L = normalize(l);
+                vec3 E = normalize(e);
+
                 // sample the night time texture
                 vec3 night = texture2D(texMapNight, st).rgb;
 
@@ -200,8 +203,9 @@
 
                     vec3 texColorA, texColorB;
                     texColorA = texture2D(texMapA, st).rgb;
-                    texColorB = texture2D(texMapB, st).rgb;
-                    vec3 time_adjusted = mix(texColorA,texColorB,shift);
+                    //texColorB = texture2D(texMapB, st).rgb;
+                    //vec3 time_adjusted = mix(texColorA,texColorB,shift);
+                    vec3 time_adjusted = texColorA;
 
                     //float light = smoothstep(0.0,0.9,lightResult.x);
 

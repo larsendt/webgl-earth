@@ -1,4 +1,5 @@
 var scene = new THREE.Scene();
+var bloom_scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 var renderer = new THREE.WebGLRenderer({ antialiasing: true });
@@ -15,38 +16,52 @@ texture.anisotropy = maxAnisotropy;
 var spec_map = THREE.ImageUtils.loadTexture("earth-norm-spec.png");
 spec_map.anisotropy = maxAnisotropy;
 
-var geometry = new THREE.SphereGeometry(3.5, 128, 128);
+var sun_geometry = new THREE.SphereGeometry(3.5, 128, 128);
 
-var sun_pos = new THREE.Vector3(0, 0, -5);
+var sun_material = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+});
 
-var uniforms =  {
+
+var sun = new THREE.Mesh(sun_geometry, sun_material);
+sun.position.z = -500.0;
+scene.add(sun);
+bloom_scene.add(sun);
+
+var earth_uniforms =  {
     texMapA: {type:"t", value:texture},
     texMapSpecular: {type:"t", value:spec_map},
     texMapNight: {type:"t", value:night_texture},
-    SunPosition: {type:"v3", value: sun_pos},
+    SunPosition: {type:"v3", value: sun.position},
 }
 
-var material = new THREE.ShaderMaterial({
+var earth_geometry = new THREE.SphereGeometry(3.5, 128, 128);
+
+var earth_material = new THREE.ShaderMaterial({
     vertexShader: $("#earth-vertex").text(),
     fragmentShader: $("#earth-fragment").text(),
-    uniforms: uniforms,
+    uniforms: earth_uniforms,
 });
 
-var earth = new THREE.Mesh(geometry, material);
-earth.position.z = -10.0;
+var earth = new THREE.Mesh(earth_geometry, earth_material);
 scene.add(earth);
 
 earth.rotation.y = 3.0;
 earth.rotation.x = 0.0;
 
-var sun_counter = 0.1;
+var camera_counter = 0.0;
+var camera_radius = 10.0;
 
 function render() {
+    earth.rotation.y += 0.0015;
+    camera_counter += 0.001;
+
+    camera.position.x = Math.sin(camera_counter) * camera_radius;
+    camera.position.z = Math.cos(camera_counter) * camera_radius;
+    camera.lookAt(earth.position);
+
+    //renderer.render(scene, camera);
+    renderer.render(bloom_scene, camera);
     requestAnimationFrame(render);
-    renderer.render(scene, camera);
-    sun_pos.x = Math.sin(sun_counter) * 500;
-    sun_pos.z = -Math.cos(sun_counter) * 500;
-    earth.rotation.y += 0.0002;
-    sun_counter += 0.001;
 }
 render();
