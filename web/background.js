@@ -122,6 +122,9 @@ pp_scene.add(fs_quad_mesh);
 var camera_counter = 3.14 / 16.0;
 var camera_radius = 14.0;
 
+var last_frame_time = 0.0;
+var frame_counter = 0;
+
 function render() {
     earth.rotation.y += 0.002;
     camera_counter += 0.0010;
@@ -194,5 +197,16 @@ function render() {
     renderer.render(pp_scene, pp_camera);
 
     requestAnimationFrame(render);
+
+    if(frame_counter == 0) {
+        var ms = new Date().getTime();
+        var diff = ms - last_frame_time;
+        last_frame_time = ms;
+        var seconds = diff / 1000.0;
+        var fps = 15 / seconds;
+        $("#fps-disp").text(fps.toFixed(1) + " FPS");
+    }
+
+    frame_counter = (frame_counter + 1) % 15;
 }
 render();

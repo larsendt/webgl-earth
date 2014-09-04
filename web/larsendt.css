@@ -38,6 +38,10 @@ body {
     padding: 0px;
 }
 
+#fps-disp {
+    color: #555;
+}
+
 .title-text {
     font-size: 16pt;
     color: #111;
