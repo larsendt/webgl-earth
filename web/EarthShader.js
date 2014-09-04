@@ -71,6 +71,7 @@ EarthShader = {
 
         "const float roughness = 0.2;",
         "const float R0 = 1.0;",
+        "const float cloud_min = 0.05;",
 
 
         "float roughnessSquared = roughness * roughness;",
@@ -244,7 +245,9 @@ EarthShader = {
         "        vec3 texColorA, texColorB;",
         "        texColorA = texture2D(texMapA, st).rgb;",
         "        vec3 time_adjusted = texColorA;",
-        "        vec3 texColorCloud = mix(vec3(0.0), texture2D(texMapClouds, st).rgb, texture_mix);",
+        "        vec3 texColorCloud = texture2D(texMapClouds, st).rgb;",
+        "        float cloud_factor = mix(cloud_min, 1.0, texture_mix);",
+        "        texColorCloud *= cloud_factor;",
 
         "        // blend in a slight amount of color based on light intensity",
         "        time_adjusted += (0.1 + vec3(0.0,0.05,0.1) * water) * lightResult.x;",
@@ -262,7 +265,8 @@ EarthShader = {
         "        gl_FragColor.a = 1.0;",
         "    } else {",
         "        // just night, do nothing",
-        "        gl_FragColor = vec4(night,1.0);",
+        "        vec4 texColorCloud = texture2D(texMapClouds, st) * cloud_min;",
+        "        gl_FragColor = vec4(night,1.0) + texColorCloud;",
         "    }",
 
 
