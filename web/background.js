@@ -13,6 +13,7 @@ var maxAnisotropy = renderer.getMaxAnisotropy();
 var blue_marble_tex = THREE.ImageUtils.loadTexture("blue_marble.png");
 var night_tex = THREE.ImageUtils.loadTexture("earth_night_lights.png");
 var water_tex = THREE.ImageUtils.loadTexture("earth-norm-spec.png");
+var cloud_tex = THREE.ImageUtils.loadTexture("earth_clouds.png");
 
 blue_marble_tex.anisotropy = maxAnisotropy;
 night_tex.anisotropy = maxAnisotropy;
@@ -49,6 +50,7 @@ EarthShader.uniforms.SunPosition.value = sun.position;
 EarthShader.uniforms.texMapA.value = blue_marble_tex;
 EarthShader.uniforms.texMapNight.value = night_tex;
 EarthShader.uniforms.texMapSpecular.value = water_tex;
+EarthShader.uniforms.texMapClouds.value = cloud_tex;
 var earth_material = new THREE.ShaderMaterial(EarthShader);
 
 var atmosphere_material = new THREE.ShaderMaterial(EarthAtmosphereShader);

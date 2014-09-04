@@ -3,6 +3,7 @@ EarthShader = {
         texMapA: {type:"t", value: null},
         texMapNight: {type:"t", value: null},
         texMapSpecular: {type:"t", value: null},
+        texMapClouds: {type:"t", value: null},
         SunPosition: {type:"v3", value: new THREE.Vector3(0, 0, 0)},
     },
     vertexShader: [
@@ -43,6 +44,7 @@ EarthShader = {
         "uniform sampler2D texMapB;",
         "uniform sampler2D texMapNight;",
         "uniform sampler2D texMapSpecular;",
+        "uniform sampler2D texMapClouds;",
 
 
         "uniform float shift;",
@@ -51,8 +53,6 @@ EarthShader = {
         "// hook for lighting code",
         "vec4 lightContribution(vec3 L, vec3 N, vec3 E);",
         "void setRoughness(float rough);",
-
-
 
 
         "// Physically Based lighting model",
@@ -220,7 +220,7 @@ EarthShader = {
 
         "    // set water to be smoother than land",
         "    float roughnessValue = 1.0;",
-        "    roughnessValue -= water * 0.3;",
+        "    roughnessValue -= water * 0.65;",
         "    setRoughness(roughnessValue);",
 
 
@@ -236,26 +236,18 @@ EarthShader = {
         "    {",
         "        // calculate the light surface mix",
 
-
         "        // what's the precision on this? just how frequently does it change?",
         "        // this should only happen a few times a day, consider moving it",
         "        // could be done on demand in separate FBO + Shader",
         "        // being able to remove a texture access would help performance",
 
-
         "        vec3 texColorA, texColorB;",
         "        texColorA = texture2D(texMapA, st).rgb;",
-        "        //texColorB = texture2D(texMapB, st).rgb;",
-        "        //vec3 time_adjusted = mix(texColorA,texColorB,shift);",
         "        vec3 time_adjusted = texColorA;",
-
-
-        "        //float light = smoothstep(0.0,0.9,lightResult.x);",
-
+        "        vec3 texColorCloud = mix(vec3(0.0), texture2D(texMapClouds, st).rgb, texture_mix);",
 
         "        // blend in a slight amount of color based on light intensity",
         "        time_adjusted += (0.1 + vec3(0.0,0.05,0.1) * water) * lightResult.x;",
-
 
         "        // mix between adjusted day and night textures",
         "        vec3 mixed_earth = mix(night,time_adjusted,texture_mix);",
@@ -266,10 +258,8 @@ EarthShader = {
         "        vec3 atmo_color = base_atmo_color * NdotE;",
 
         "        // add in specular term",
-        "        gl_FragColor.rgb = mixed_earth + lightResult.z * water * (time_adjusted + 0.1) + atmo_color;",
+        "        gl_FragColor.rgb = mixed_earth + lightResult.z * water * (time_adjusted + 0.1) + atmo_color + texColorCloud;",
         "        gl_FragColor.a = 1.0;",
-
-
         "    } else {",
         "        // just night, do nothing",
         "        gl_FragColor = vec4(night,1.0);",
