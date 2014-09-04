@@ -260,9 +260,9 @@ EarthShader = {
         "        // mix between adjusted day and night textures",
         "        vec3 mixed_earth = mix(night,time_adjusted,texture_mix);",
 
-        "        float NdotE = pow(1.0 - dot(N, E), 8.0);",
+        "        float NdotE = pow(1.0 - dot(N, E), 6.0);",
         "        NdotE = mix(0.0, NdotE, texture_mix);",
-        "        vec3 base_atmo_color = vec3(0.46, 0.77, 0.96);",
+        "        vec3 base_atmo_color = vec3(0.4, 0.75, 1.0);",
         "        vec3 atmo_color = base_atmo_color * NdotE;",
 
         "        // add in specular term",

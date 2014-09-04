@@ -4,7 +4,8 @@ var aspect_ratio = window.innerWidth / window.innerHeight;
 var camera = new THREE.PerspectiveCamera(30, aspect_ratio, 1, 10000);
 var pp_camera = new THREE.OrthographicCamera(-aspect_ratio, aspect_ratio, 1, -1, 1, 1000)
 
-var renderer = new THREE.WebGLRenderer({ antialiasing: true, precision:"highp" });
+var renderer = new THREE.WebGLRenderer({ antialias: true, precision:"highp" });
+renderer.shadowMapType = THREE.PCFSoftShadowMap;
 renderer.setClearColor(0x000000);
 renderer.setSize(window.innerWidth, window.innerHeight - 5);
 var maxAnisotropy = renderer.getMaxAnisotropy();
@@ -42,8 +43,7 @@ var sun = new THREE.Mesh(sun_geometry, sun_material);
 sun.position.z = -5000.0;
 scene.add(sun);
 
-var earth_geometry = new THREE.SphereGeometry(3.5, 128, 128);
-var atmosphere_geometry = new THREE.SphereGeometry(3.6, 128, 128);
+var earth_geometry = new THREE.SphereGeometry(3.5, 256, 256);
 
 EarthShader.uniforms.SunPosition.value = sun.position;
 EarthShader.uniforms.texMapA.value = blue_marble_tex;
@@ -65,9 +65,6 @@ var earth_dark_material = new THREE.ShaderMaterial(EarthDarkShader);
 
 var earth = new THREE.Mesh(earth_geometry, earth_material);
 scene.add(earth);
-
-var atmosphere = new THREE.Mesh(atmosphere_geometry, atmosphere_material);
-scene.add(atmosphere);
 
 earth.rotation.y = 3.0;
 earth.rotation.x = 0.0;
@@ -144,13 +141,11 @@ function render() {
     // render the primary scene
     sun.material = sun_material;
     earth.material = earth_material;
-    atmosphere.material = atmosphere_material;
     renderer.render(scene, camera, mainTarget);
 
     // render a luminance pass where the sun is white and the earth is black
     sun.material = luminance_material;
     earth.material = earth_dark_material;
-    atmosphere.material = transparent_material;
     renderer.render(scene, camera, blurTarget1);
 
     // do a vertical blur pass on the luminance texture
@@ -172,13 +167,13 @@ function render() {
 
     // do a vertical blur pass on the main scene
     VerticalBlurShader.uniforms.texture.value = mainTarget;
-    VerticalBlurShader.uniforms.h.value = 1.0 / window.innerHeight;
+    VerticalBlurShader.uniforms.h.value = 1.25 / window.innerHeight;
     fs_quad_mesh.material = vblur_material;
     renderer.render(pp_scene, pp_camera, blurTarget1);
 
     // horizontal pass
     HorizontalBlurShader.uniforms.texture.value = blurTarget1;
-    HorizontalBlurShader.uniforms.w.value = 1.0 / window.innerWidth;
+    HorizontalBlurShader.uniforms.w.value = 1.25 / window.innerWidth;
     fs_quad_mesh.material = hblur_material;
     renderer.render(pp_scene, pp_camera, blurTarget3);
 

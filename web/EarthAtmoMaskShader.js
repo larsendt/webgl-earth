@@ -21,7 +21,8 @@ var EarthAtmoMaskShader = {
         "       gl_FragColor = t1;",
         "   }",
         "   else {",
-        "       gl_FragColor = t2;",
+        "       vec4 base_atmo_color = vec4(0.46, 0.77, 0.96, 1.0);",
+        "       gl_FragColor = length(t2.xyz) * base_atmo_color;",
         "   }",
         "}",
     ].join("\n")

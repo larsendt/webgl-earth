@@ -17,6 +17,8 @@ var HorizontalBlurShader = {
 
         "void main() {",
             "vec4 sum = vec4( 0.0 );",
+            "sum += texture2D( texture, vec2( vUV.x - 6.0 * w, vUV.y ) ) * 0.0125;",
+            "sum += texture2D( texture, vec2( vUV.x - 5.0 * w, vUV.y ) ) * 0.025;",
             "sum += texture2D( texture, vec2( vUV.x - 4.0 * w, vUV.y ) ) * 0.051;",
             "sum += texture2D( texture, vec2( vUV.x - 3.0 * w, vUV.y ) ) * 0.092;",
             "sum += texture2D( texture, vec2( vUV.x - 2.0 * w, vUV.y ) ) * 0.122;",
@@ -26,6 +28,8 @@ var HorizontalBlurShader = {
             "sum += texture2D( texture, vec2( vUV.x + 2.0 * w, vUV.y ) ) * 0.122;",
             "sum += texture2D( texture, vec2( vUV.x + 3.0 * w, vUV.y ) ) * 0.092;",
             "sum += texture2D( texture, vec2( vUV.x + 4.0 * w, vUV.y ) ) * 0.051;",
+            "sum += texture2D( texture, vec2( vUV.x + 5.0 * w, vUV.y ) ) * 0.025;",
+            "sum += texture2D( texture, vec2( vUV.x + 6.0 * w, vUV.y ) ) * 0.0125;",
             "gl_FragColor = sum;",
         "}",
     ].join("\n")
