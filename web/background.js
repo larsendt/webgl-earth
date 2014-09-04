@@ -1,12 +1,21 @@
 var scene = new THREE.Scene();
 var pp_scene = new THREE.Scene();
 var aspect_ratio = window.innerWidth / window.innerHeight;
-var camera = new THREE.PerspectiveCamera(45, aspect_ratio, 0.1, 1000);
+var camera = new THREE.PerspectiveCamera(30, aspect_ratio, 1, 10000);
 var pp_camera = new THREE.OrthographicCamera(-aspect_ratio, aspect_ratio, 1, -1, 1, 1000)
 
 var renderer = new THREE.WebGLRenderer({ antialiasing: true, precision:"highp" });
 renderer.setClearColor(0x000000);
 renderer.setSize(window.innerWidth, window.innerHeight - 5);
+var maxAnisotropy = renderer.getMaxAnisotropy();
+
+var blue_marble_tex = THREE.ImageUtils.loadTexture("blue_marble.png");
+var night_tex = THREE.ImageUtils.loadTexture("earth_night_lights.png");
+var water_tex = THREE.ImageUtils.loadTexture("earth-norm-spec.png");
+
+blue_marble_tex.anisotropy = maxAnisotropy;
+night_tex.anisotropy = maxAnisotropy;
+water_tex.anisotropy = maxAnisotropy;
 
 var renderTargetParams = {
     minFilter: THREE.LinearFilter,
@@ -14,14 +23,14 @@ var renderTargetParams = {
 
 $("#bg-canvas").append(renderer.domElement);
 
-var sun_geometry = new THREE.SphereGeometry(5.0, 128, 128);
+var sun_geometry = new THREE.SphereGeometry(25.0, 128, 128);
 
 var sun_material = new THREE.MeshBasicMaterial({
     color: 0xffffff,
 });
 
 var luminance_material = new THREE.MeshBasicMaterial({
-    color: 0xfff0aa,
+    color: 0xfff5f2,
 });
 
 var shadow_material = new THREE.MeshBasicMaterial({
@@ -30,19 +39,35 @@ var shadow_material = new THREE.MeshBasicMaterial({
 });
 
 var sun = new THREE.Mesh(sun_geometry, sun_material);
-sun.position.z = -500.0;
+sun.position.z = -5000.0;
 scene.add(sun);
 
 var earth_geometry = new THREE.SphereGeometry(3.5, 128, 128);
+var atmosphere_geometry = new THREE.SphereGeometry(3.6, 128, 128);
 
 EarthShader.uniforms.SunPosition.value = sun.position;
+EarthShader.uniforms.texMapA.value = blue_marble_tex;
+EarthShader.uniforms.texMapNight.value = night_tex;
+EarthShader.uniforms.texMapSpecular.value = water_tex;
 var earth_material = new THREE.ShaderMaterial(EarthShader);
+
+var atmosphere_material = new THREE.ShaderMaterial(EarthAtmosphereShader);
+atmosphere_material.transparent = true;
+
+var transparent_material = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0,
+});
 
 EarthDarkShader.uniforms.SunPosition.value = sun.position;
 var earth_dark_material = new THREE.ShaderMaterial(EarthDarkShader);
 
 var earth = new THREE.Mesh(earth_geometry, earth_material);
 scene.add(earth);
+
+var atmosphere = new THREE.Mesh(atmosphere_geometry, atmosphere_material);
+scene.add(atmosphere);
 
 earth.rotation.y = 3.0;
 earth.rotation.x = 0.0;
@@ -95,12 +120,12 @@ var hblur_material = new THREE.ShaderMaterial(HorizontalBlurShader);
 var fs_quad_mesh = new THREE.Mesh(fs_quad_geometry, god_ray_material);
 pp_scene.add(fs_quad_mesh);
 
-var camera_counter = 0.3;
-var camera_radius = 10.0;
+var camera_counter = 3.14 / 16.0;
+var camera_radius = 14.0;
 
 function render() {
-    earth.rotation.y += 0.001;
-    camera_counter += 0.0005;
+    earth.rotation.y += 0.002;
+    camera_counter += 0.0010;
 
     camera.position.x = Math.sin(camera_counter) * camera_radius;
     camera.position.z = Math.cos(camera_counter) * camera_radius;
@@ -116,8 +141,14 @@ function render() {
 
     GodRayShader.uniforms.uScreenLightPos.value = new THREE.Vector2(vector.x, vector.y);
 
+    sun.material = sun_material;
+    earth.material = earth_material;
+    atmosphere.material = atmosphere_material;
+    renderer.render(scene, camera, mainTarget);
+
     sun.material = luminance_material;
     earth.material = earth_dark_material;
+    atmosphere.material = transparent_material;
     renderer.render(scene, camera, blurTarget1);
 
     fs_quad_mesh.material = vblur_material;
@@ -125,10 +156,6 @@ function render() {
 
     fs_quad_mesh.material = hblur_material;
     renderer.render(pp_scene, pp_camera, blurTarget1);
-
-    sun.material = sun_material;
-    earth.material = earth_material;
-    renderer.render(scene, camera, mainTarget);
 
     fs_quad_mesh.material = god_ray_material;
     renderer.render(pp_scene, pp_camera, blurTarget2);

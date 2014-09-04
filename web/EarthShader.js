@@ -1,8 +1,8 @@
 EarthShader = {
     uniforms: {
-        texMapA: {type:"t", value: THREE.ImageUtils.loadTexture("blue_marble.png")},
-        texMapNight: {type:"t", value: THREE.ImageUtils.loadTexture("earth_night_lights.png")},
-        texMapSpecular: {type:"t", value: THREE.ImageUtils.loadTexture("earth-norm-spec.png")},
+        texMapA: {type:"t", value: null},
+        texMapNight: {type:"t", value: null},
+        texMapSpecular: {type:"t", value: null},
         SunPosition: {type:"v3", value: new THREE.Vector3(0, 0, 0)},
     },
     vertexShader: [
@@ -203,7 +203,7 @@ EarthShader = {
 
 
         "    // blow out the bright sections, darken the dark sections",
-        "    night = pow(night,vec3(1.25));",
+        "    night = pow(night,vec3(1.7));",
 
 
         "    // pull the normal from the combined Normal + Specular texture",
@@ -229,8 +229,7 @@ EarthShader = {
 
 
         "    // calculate the blending at the terminator",
-        //"    float texture_mix = smoothstep(-0.25,0.25,lightResult.w) * smoothstep(-0.25,0.25,dot(N,L));",
-        "    float texture_mix = smoothstep(-0.25,0.25,lightResult.w) * smoothstep(-0.25,0.25,lightResult.w);",
+        "    float texture_mix = smoothstep(-0.25,0.25,lightResult.w) * smoothstep(-0.25,0.25,dot(N,L));",
 
 
         "    if (texture_mix > 0.0)",
@@ -261,9 +260,12 @@ EarthShader = {
         "        // mix between adjusted day and night textures",
         "        vec3 mixed_earth = mix(night,time_adjusted,texture_mix);",
 
+        "        float NdotE = pow(1.0 - dot(N, E), 4.0);",
+        "        NdotE = mix(0.0, NdotE, texture_mix);",
+        "        vec3 atmo_color = vec3(0.7, 0.7, 1.0) * NdotE;",
 
         "        // add in specular term",
-        "        gl_FragColor.rgb = mixed_earth + lightResult.z * water * (time_adjusted + 0.1);",
+        "        gl_FragColor.rgb = mixed_earth + lightResult.z * water * (time_adjusted + 0.1) + atmo_color;",
         "        gl_FragColor.a = 1.0;",
 
 
