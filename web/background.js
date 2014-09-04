@@ -97,6 +97,7 @@ fs_quad_geometry.faces.push(
 var blurTargetFactor = 1.0;
 var blurTarget1 = new THREE.WebGLRenderTarget(window.innerWidth / blurTargetFactor, window.innerHeight / blurTargetFactor, renderTargetParams);
 var blurTarget2 = new THREE.WebGLRenderTarget(window.innerWidth / blurTargetFactor, window.innerHeight / blurTargetFactor, renderTargetParams);
+var blurTarget3 = new THREE.WebGLRenderTarget(window.innerWidth / blurTargetFactor, window.innerHeight / blurTargetFactor, renderTargetParams);
 var mainTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetParams);
 
 
@@ -105,10 +106,8 @@ AdditiveBlendingShader.uniforms.texture2.value = blurTarget2;
 AdditiveBlendingShader.uniforms.multiplier.value = 1.0;
 AdditiveBlendingShader.uniforms.exponent.value = 1.0;
 
-VerticalBlurShader.uniforms.h.value = 1.0 / window.innerHeight;
 VerticalBlurShader.uniforms.texture.value = blurTarget1;
 
-HorizontalBlurShader.uniforms.w.value = 1.0 / window.innerWidth;
 HorizontalBlurShader.uniforms.texture.value = blurTarget2;
 
 GodRayShader.uniforms.texture.value = blurTarget1;
@@ -117,6 +116,7 @@ var god_ray_material = new THREE.ShaderMaterial(GodRayShader);
 var additive_material = new THREE.ShaderMaterial(AdditiveBlendingShader);
 var vblur_material = new THREE.ShaderMaterial(VerticalBlurShader);
 var hblur_material = new THREE.ShaderMaterial(HorizontalBlurShader);
+var earth_atmo_mask_material = new THREE.ShaderMaterial(EarthAtmoMaskShader);
 var fs_quad_mesh = new THREE.Mesh(fs_quad_geometry, god_ray_material);
 pp_scene.add(fs_quad_mesh);
 
@@ -141,25 +141,58 @@ function render() {
 
     GodRayShader.uniforms.uScreenLightPos.value = new THREE.Vector2(vector.x, vector.y);
 
+    // render the primary scene
     sun.material = sun_material;
     earth.material = earth_material;
     atmosphere.material = atmosphere_material;
     renderer.render(scene, camera, mainTarget);
 
+    // render a luminance pass where the sun is white and the earth is black
     sun.material = luminance_material;
     earth.material = earth_dark_material;
     atmosphere.material = transparent_material;
     renderer.render(scene, camera, blurTarget1);
 
+    // do a vertical blur pass on the luminance texture
+    VerticalBlurShader.uniforms.texture.value = blurTarget1;
+    VerticalBlurShader.uniforms.h.value = 1.0 / window.innerHeight;
     fs_quad_mesh.material = vblur_material;
     renderer.render(pp_scene, pp_camera, blurTarget2);
 
+    // do a horizontal blur pass on the luminance texture
+    HorizontalBlurShader.uniforms.texture.value = blurTarget2;
+    HorizontalBlurShader.uniforms.w.value = 1.0 / window.innerWidth;
     fs_quad_mesh.material = hblur_material;
     renderer.render(pp_scene, pp_camera, blurTarget1);
 
+    // run the god ray shader on the blurred luminance texture
+    GodRayShader.uniforms.texture.value = blurTarget1;
     fs_quad_mesh.material = god_ray_material;
     renderer.render(pp_scene, pp_camera, blurTarget2);
 
+    // do a vertical blur pass on the main scene
+    VerticalBlurShader.uniforms.texture.value = mainTarget;
+    VerticalBlurShader.uniforms.h.value = 1.0 / window.innerHeight;
+    fs_quad_mesh.material = vblur_material;
+    renderer.render(pp_scene, pp_camera, blurTarget1);
+
+    // horizontal pass
+    HorizontalBlurShader.uniforms.texture.value = blurTarget1;
+    HorizontalBlurShader.uniforms.w.value = 1.0 / window.innerWidth;
+    fs_quad_mesh.material = hblur_material;
+    renderer.render(pp_scene, pp_camera, blurTarget3);
+
+    // blend earth blur with earth scene
+    EarthAtmoMaskShader.uniforms.mainTexture.value = mainTarget;
+    EarthAtmoMaskShader.uniforms.atmoTexture.value = blurTarget3;
+    fs_quad_mesh.material = earth_atmo_mask_material;
+    renderer.render(pp_scene, pp_camera, blurTarget1);
+
+    // do an additive blend of the god ray texture and the main scene texture
+    AdditiveBlendingShader.uniforms.texture1.value = blurTarget1;
+    AdditiveBlendingShader.uniforms.texture2.value = blurTarget2;
+    AdditiveBlendingShader.uniforms.multiplier.value = 1.0;
+    AdditiveBlendingShader.uniforms.exponent.value = 1.0;
     fs_quad_mesh.material = additive_material;
     renderer.render(pp_scene, pp_camera);
 
