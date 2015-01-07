@@ -76,7 +76,16 @@
       </ul>
     </section>
 
+    <script type="text/javascript" src="jquery-2.1.1.min.js"></script>
     <script src="js/three.min.js"></script>
+    <script type="text/javascript" src="EarthShader.js"></script>
+    <script type="text/javascript" src="EarthDarkShader.js"></script>
+    <script type="text/javascript" src="HorizontalBlurShader.js"></script>
+    <script type="text/javascript" src="VerticalBlurShader.js"></script>
+    <script type="text/javascript" src="AdditiveBlendingShader.js"></script>
+    <script type="text/javascript" src="GodRayShader.js"></script>
+    <script type="text/javascript" src="EarthAtmosphereShader.js"></script>
+    <script type="text/javascript" src="EarthAtmoMaskShader.js"></script>
     <script src="js/loaders/OBJLoader.js"></script>
     <script>
       var VR_POSITION_SCALE = 25;
@@ -180,6 +189,17 @@
           fovRight = hmdDevice.getRecommendedEyeFieldOfView("right");
         }
 
+        var factor = 3;
+        fovLeft.leftDegrees /= factor;
+        fovLeft.rightDegrees /= factor;
+        fovLeft.upDegrees /= factor;
+        fovLeft.downDegrees /= factor;
+
+        fovRight.leftDegrees /= factor;
+        fovRight.rightDegrees /= factor;
+        fovRight.upDegrees /= factor;
+        fovRight.downDegrees /= factor;
+
         cameraLeft.projectionMatrix = PerspectiveMatrixFromVRFieldOfView(fovLeft, 0.1, 1000);
         cameraRight.projectionMatrix = PerspectiveMatrixFromVRFieldOfView(fovRight, 0.1, 1000);
       }
@@ -196,10 +216,10 @@
             document.getElementById("rightTranslation").innerHTML = printVector(eyeOffsetRight);
 
             cameraLeft.position.sub(eyeOffsetLeft);
-            cameraLeft.position.z = 12;
+            cameraLeft.position.z = 14;
 
             cameraRight.position.sub(eyeOffsetRight);
-            cameraRight.position.z = 12;
+            cameraRight.position.z = 14;
 
             resizeFOV(0.0);
           }
@@ -239,55 +259,132 @@
           }
         }
       });
+        var scene = new THREE.Scene();
+        var pp_scene = new THREE.Scene();
+        var aspect_ratio = window.innerWidth / window.innerHeight;
+        var camera = new THREE.PerspectiveCamera(30, aspect_ratio, 1, 10000);
+        var pp_camera = new THREE.OrthographicCamera(-aspect_ratio, aspect_ratio, 1, -1, 1, 1000)
 
-      //
-      // Rendering
-      //
-      var renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
-      var scene = new THREE.Scene();
-      var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+        var renderer = new THREE.WebGLRenderer({ antialias: true, precision:"highp" });
+        renderer.shadowMapType = THREE.PCFSoftShadowMap;
+        renderer.setClearColor(0x000000);
+        renderer.setSize(window.innerWidth, window.innerHeight - 5);
+        var maxAnisotropy = renderer.getMaxAnisotropy();
 
-      renderer.setClearColor(0x202020, 1.0);
+        var blue_marble_tex = THREE.ImageUtils.loadTexture("blue_marble.png");
+        var night_tex = THREE.ImageUtils.loadTexture("earth_night_lights.png");
+        var water_tex = THREE.ImageUtils.loadTexture("earth-norm-spec.png");
+        var cloud_tex = THREE.ImageUtils.loadTexture("earth_clouds.png");
 
-      var ambient = new THREE.AmbientLight( 0x444444 );
-      scene.add( ambient );
+        blue_marble_tex.anisotropy = maxAnisotropy;
+        night_tex.anisotropy = maxAnisotropy;
+        water_tex.anisotropy = maxAnisotropy;
 
-      var directionalLight = new THREE.DirectionalLight( 0xffeedd );
-      directionalLight.position.set( 0, 0, 1 ).normalize();
-      scene.add( directionalLight );
+        var renderTargetParams = {
+            minFilter: THREE.LinearFilter,
+        };
 
-      var riftDiffuse = THREE.ImageUtils.loadTexture( "media/maps/diffuse/DK2diffuse.jpg" );
-      riftDiffuse.anisotropy = 16;
+        $("#bg-canvas").append(renderer.domElement);
 
-      var riftNormal = THREE.ImageUtils.loadTexture( "media/maps/normal/DK2normal.jpg" );
-      riftNormal.anisotropy = 16;
+        var sun_geometry = new THREE.SphereGeometry(25.0, 128, 128);
 
-      var riftMaterial = new THREE.MeshPhongMaterial( {
-        map: riftDiffuse,
-        normalMap: riftNormal
-      } );
+        var sun_material = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+        });
 
-      var riftObj = new THREE.Object3D();
-      scene.add(riftObj);
+        var luminance_material = new THREE.MeshBasicMaterial({
+            color: 0xfff5f2,
+        });
 
-      var rift = null;
-      var loader = new THREE.OBJLoader();
-        loader.load( 'media/models/3dDK2_nostrap.obj', function ( object ) {
-          rift = object;
+        var shadow_material = new THREE.MeshBasicMaterial({
+            color: 0x0,
+            map: new THREE.ImageUtils.loadTexture("blue_marble.png"),
+        });
 
-          object.traverse( function ( child ) {
-            if ( child instanceof THREE.Mesh ) {
-              child.material = riftMaterial;
-            }
-          } );
+        var sun = new THREE.Mesh(sun_geometry, sun_material);
+        sun.position.z = -5000.0;
+        scene.add(sun);
 
-          rift.position.z = -3.0;
-          rift.rotation.y = 3.14159;
+        var earth_geometry = new THREE.SphereGeometry(10, 256, 256);
 
-          riftObj.add( rift );
-      } );
+        EarthShader.uniforms.SunPosition.value = sun.position;
+        EarthShader.uniforms.texMapA.value = blue_marble_tex;
+        EarthShader.uniforms.texMapNight.value = night_tex;
+        EarthShader.uniforms.texMapSpecular.value = water_tex;
+        EarthShader.uniforms.texMapClouds.value = cloud_tex;
+        var earth_material = new THREE.ShaderMaterial(EarthShader);
 
-      camera.position.z = 12;
+        var atmosphere_material = new THREE.ShaderMaterial(EarthAtmosphereShader);
+        atmosphere_material.transparent = true;
+
+        var transparent_material = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0,
+        });
+
+        EarthDarkShader.uniforms.SunPosition.value = sun.position;
+        var earth_dark_material = new THREE.ShaderMaterial(EarthDarkShader);
+
+        var earth = new THREE.Mesh(earth_geometry, earth_material);
+        scene.add(earth);
+
+        earth.rotation.y = 3.0;
+        earth.rotation.x = 0.0;
+
+        var fs_quad_geometry = new THREE.Geometry();
+        fs_quad_geometry.vertices.push(
+            new THREE.Vector3(-aspect_ratio, -1, -1),
+            new THREE.Vector3( aspect_ratio, -1, -1),
+            new THREE.Vector3(-aspect_ratio,  1, -1),
+            new THREE.Vector3( aspect_ratio,  1, -1)
+        );
+
+        fs_quad_geometry.faceVertexUvs[0].push(
+            [new THREE.Vector2(0, 0),
+             new THREE.Vector2(1, 0),
+             new THREE.Vector2(1, 1)],
+            [new THREE.Vector2(1, 1),
+             new THREE.Vector2(0, 1),
+             new THREE.Vector2(0, 0)]
+        );
+
+        fs_quad_geometry.faces.push(
+            new THREE.Face3(0, 1, 3),
+            new THREE.Face3(3, 2, 0)
+        );
+
+        var blurTargetFactor = 1.0;
+        var blurTarget1 = new THREE.WebGLRenderTarget(window.innerWidth / blurTargetFactor, window.innerHeight / blurTargetFactor, renderTargetParams);
+        var blurTarget2 = new THREE.WebGLRenderTarget(window.innerWidth / blurTargetFactor, window.innerHeight / blurTargetFactor, renderTargetParams);
+        var blurTarget3 = new THREE.WebGLRenderTarget(window.innerWidth / blurTargetFactor, window.innerHeight / blurTargetFactor, renderTargetParams);
+        var mainTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, renderTargetParams);
+
+
+        AdditiveBlendingShader.uniforms.texture1.value = mainTarget;
+        AdditiveBlendingShader.uniforms.texture2.value = blurTarget2;
+        AdditiveBlendingShader.uniforms.multiplier.value = 1.0;
+        AdditiveBlendingShader.uniforms.exponent.value = 1.0;
+
+        VerticalBlurShader.uniforms.texture.value = blurTarget1;
+
+        HorizontalBlurShader.uniforms.texture.value = blurTarget2;
+
+        GodRayShader.uniforms.texture.value = blurTarget1;
+
+        var god_ray_material = new THREE.ShaderMaterial(GodRayShader);
+        var additive_material = new THREE.ShaderMaterial(AdditiveBlendingShader);
+        var vblur_material = new THREE.ShaderMaterial(VerticalBlurShader);
+        var hblur_material = new THREE.ShaderMaterial(HorizontalBlurShader);
+        var earth_atmo_mask_material = new THREE.ShaderMaterial(EarthAtmoMaskShader);
+        var fs_quad_mesh = new THREE.Mesh(fs_quad_geometry, god_ray_material);
+        pp_scene.add(fs_quad_mesh);
+
+        var camera_counter = 3.14 / 16.0;
+        var camera_radius = 14.0;
+
+        var last_frame_time = 0.0;
+        var frame_counter = 0;
 
       function resize() {
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -345,27 +442,86 @@
         angularAcceleration.innerHTML = printVector(vrState.angularAcceleration);
         linearAcceleration.innerHTML = printVector(vrState.linearAcceleration);
 
-        if (riftObj) {
-          riftObj.position.x = vrState.position.x * VR_POSITION_SCALE;
-          riftObj.position.y = vrState.position.y * VR_POSITION_SCALE;
-          riftObj.position.z = vrState.position.z * VR_POSITION_SCALE;
-
-          riftObj.quaternion.x = vrState.orientation.x;
-          riftObj.quaternion.y = vrState.orientation.y;
-          riftObj.quaternion.z = vrState.orientation.z;
-          riftObj.quaternion.w = vrState.orientation.w;
-        }
-
         return true;
       }
 
       function render(t) {
+        earth.rotation.y += 0.002;
+        camera_counter += 0.0010;
+        function _render(camera) {
+            //camera.position.x = Math.sin(camera_counter) * camera_radius;
+            //camera.position.z = Math.cos(camera_counter) * camera_radius;
+            //camera.lookAt(earth.position);
+            //camera.updateProjectionMatrix();
+
+            var vector = new THREE.Vector3();
+            var projector = new THREE.Projector();
+            projector.projectVector( vector.setFromMatrixPosition( sun.matrixWorld ), camera );
+
+            vector.x = (vector.x + 1.0) / 2.0;
+            vector.y = (vector.y + 1.0) / 2.0;
+
+            GodRayShader.uniforms.uScreenLightPos.value = new THREE.Vector2(vector.x, vector.y);
+
+            // render the primary scene
+            sun.material = sun_material;
+            earth.material = earth_material;
+            renderer.render(scene, camera, mainTarget);
+
+            // render a luminance pass where the sun is white and the earth is black
+            sun.material = luminance_material;
+            earth.material = earth_dark_material;
+            renderer.render(scene, camera, blurTarget1);
+
+            // do a vertical blur pass on the luminance texture
+            VerticalBlurShader.uniforms.texture.value = blurTarget1;
+            VerticalBlurShader.uniforms.h.value = 1.0 / window.innerHeight;
+            fs_quad_mesh.material = vblur_material;
+            renderer.render(pp_scene, pp_camera, blurTarget2);
+
+            // do a horizontal blur pass on the luminance texture
+            HorizontalBlurShader.uniforms.texture.value = blurTarget2;
+            HorizontalBlurShader.uniforms.w.value = 1.0 / window.innerWidth;
+            fs_quad_mesh.material = hblur_material;
+            renderer.render(pp_scene, pp_camera, blurTarget1);
+
+            // run the god ray shader on the blurred luminance texture
+            GodRayShader.uniforms.texture.value = blurTarget1;
+            fs_quad_mesh.material = god_ray_material;
+            renderer.render(pp_scene, pp_camera, blurTarget2);
+
+            // do a vertical blur pass on the main scene
+            VerticalBlurShader.uniforms.texture.value = mainTarget;
+            VerticalBlurShader.uniforms.h.value = 1.25 / window.innerHeight;
+            fs_quad_mesh.material = vblur_material;
+            renderer.render(pp_scene, pp_camera, blurTarget1);
+
+            // horizontal pass
+            HorizontalBlurShader.uniforms.texture.value = blurTarget1;
+            HorizontalBlurShader.uniforms.w.value = 1.25 / window.innerWidth;
+            fs_quad_mesh.material = hblur_material;
+            renderer.render(pp_scene, pp_camera, blurTarget3);
+
+            // blend earth blur with earth scene
+            EarthAtmoMaskShader.uniforms.mainTexture.value = mainTarget;
+            EarthAtmoMaskShader.uniforms.atmoTexture.value = blurTarget3;
+            fs_quad_mesh.material = earth_atmo_mask_material;
+            renderer.render(pp_scene, pp_camera, blurTarget1);
+
+            // do an additive blend of the god ray texture and the main scene texture
+            AdditiveBlendingShader.uniforms.texture1.value = blurTarget1;
+            AdditiveBlendingShader.uniforms.texture2.value = blurTarget2;
+            AdditiveBlendingShader.uniforms.multiplier.value = 1.0;
+            AdditiveBlendingShader.uniforms.exponent.value = 1.0;
+            fs_quad_mesh.material = additive_material;
+            renderer.render(pp_scene, camera);
+
+        }
         requestAnimationFrame(render);
 
-        if (!updateVRDevice() && rift) {
+        if (!updateVRDevice()) {
           // If we don't have a VR device just spin the model around to give us
           // something pretty to look at.
-          rift.rotation.y += 0.01;
         }
 
         if (vrMode) {
@@ -373,18 +529,29 @@
           renderer.enableScissorTest ( true );
           renderer.setScissor( 0, 0, window.innerWidth / 2, window.innerHeight );
           renderer.setViewport( 0, 0, window.innerWidth / 2, window.innerHeight );
-          renderer.render(scene, cameraLeft);
+          _render(cameraLeft);
 
           // Render right eye
           renderer.setScissor( window.innerWidth / 2, 0, window.innerWidth / 2, window.innerHeight );
           renderer.setViewport( window.innerWidth / 2, 0, window.innerWidth / 2, window.innerHeight );
-          renderer.render(scene, cameraRight);
+          _render(cameraRight);
         } else {
           // Render mono view
           renderer.enableScissorTest ( false );
           renderer.setViewport( 0, 0, window.innerWidth, window.innerHeight );
-          renderer.render(scene, camera);
+          _render(camera);
         }
+
+        if(frame_counter == 0) {
+            var ms = new Date().getTime();
+            var diff = ms - last_frame_time;
+            last_frame_time = ms;
+            var seconds = diff / 1000.0;
+            var fps = 15 / seconds;
+            $("#fps-disp").text(fps.toFixed(1) + " FPS");
+        }
+
+        frame_counter = (frame_counter + 1) % 15;
       }
       document.body.appendChild( renderer.domElement );
       render();
