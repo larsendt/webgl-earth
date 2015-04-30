@@ -10,10 +10,10 @@ renderer.setClearColor(0x000000);
 renderer.setSize(window.innerWidth, window.innerHeight - 5);
 var maxAnisotropy = renderer.getMaxAnisotropy();
 
-var blue_marble_tex = THREE.ImageUtils.loadTexture("blue_marble.png");
-var night_tex = THREE.ImageUtils.loadTexture("earth_night_lights.png");
-var water_tex = THREE.ImageUtils.loadTexture("earth-norm-spec.png");
-var cloud_tex = THREE.ImageUtils.loadTexture("earth_clouds.png");
+var blue_marble_tex = THREE.ImageUtils.loadTexture("blue_marble_4k.png");
+var night_tex = THREE.ImageUtils.loadTexture("earth_night_lights_4k.png");
+var water_tex = THREE.ImageUtils.loadTexture("earth-norm-spec_4k.png");
+var cloud_tex = THREE.ImageUtils.loadTexture("earth_clouds_4k.png");
 
 blue_marble_tex.anisotropy = maxAnisotropy;
 night_tex.anisotropy = maxAnisotropy;
